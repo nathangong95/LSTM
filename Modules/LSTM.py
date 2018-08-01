@@ -1,25 +1,40 @@
-""" this module handles the basic data processing for LSTM training and LSTM training itself
+""" 
+This module handles the basic data processing for LSTM training and LSTM training itself
 training funciton is the highest level function of this module
 Author: Chenghao Gong
 Date: 7/20/2018
 Version: 1.0
 """
-import scipy.io as spio
 import numpy as np
 import keras.utils
+import scipy.io as spio
 from keras import utils as np_utils
 from keras.utils import to_categorical
-import h5py
 import pandas as pd
 from keras.models import Sequential
 from keras.layers import Dense, Dropout
 from keras.layers import Embedding
 from keras.layers import LSTM
 import matplotlib.pyplot as plt
-import seaborn as sns
 import itertools
+import os
+import h5py
 
 def loadData(data_path):
+    filelist=os.listdir(data_path)
+    train_data=[]
+    train_label=[]
+    f=[]
+    filelist.sort()
+    for file in filelist:
+        data=np.genfromtxt(data_path+file,delimiter=',')
+        _,s=data.shape
+        train_data.append(np.reshape(data[:14,:].T,(s,1,14)))
+        train_label.append(to_categorical(np.reshape(data[14,:],(s,))))
+        f.append(np.reshape(data[15,:],(s,)))
+    return train_data, train_label, f
+'''
+def loadData2(data_path):
     """ function to load training data, training label, and time stamp
     Args:
         datapath (str): path to the data folder
@@ -52,7 +67,7 @@ def loadData(data_path):
     f.append(h5py.File(data_path+'/t6.mat'))
     f.append(h5py.File(data_path+'/t7.mat'))
     return train_data, train_label, f
-
+'''
 
 def trainLSTM(train_data,train_label,Hidden_unit,batch_s,epoch):
     """ Low level train funciton
@@ -72,52 +87,6 @@ def trainLSTM(train_data,train_label,Hidden_unit,batch_s,epoch):
         model.fit(train_data[i],train_label[i], batch_size=batch_s, epochs=epoch)
     return model
 
-
-
-def plot_confusion_matrix(cm, classes,
-                          normalize=False,
-                          title='Confusion matrix',
-                          cmap=plt.cm.Greys):
-    """
-    This function prints and plots the confusion matrix.
-    Normalization can be applied by setting `normalize=True`.
-    """
-    sns.set_style("whitegrid")
-    sns.set_context("paper", font_scale=2.0)
-    if normalize:
-        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-        print("Normalized confusion matrix")
-    else:
-        print('Confusion matrix, without normalization')
-
-    print(cm)
-    sns.set(font_scale=2)
-    
-    fig, ax = plt.subplots(1)
-
-    plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    plt.title(title)
-    plt.colorbar()
-    tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=45)
-    plt.yticks(tick_marks, classes)
-
-    fmt = '.2f' if normalize else 'd'
-    thresh = cm.max() / 2.
-    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        plt.text(j, i, format(cm[i, j], fmt),
-                 horizontalalignment="center",
-                 fontsize=24,
-                 color="white" if cm[i, j] > thresh else "black")
-
-    plt.tight_layout()
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
-    ax.grid(False)
-    
-    
-    
-    return fig
 def toIntegerLabel(l):
     '''
     low level helper function to transfer one hot label to integer label
@@ -175,9 +144,11 @@ def toPanda_test(model,train_data,whichFolder,f):
     OnOff=toOnOffSet(IntegerLabel)
     df=[]
     for i in range(len(OnOff)):
-        OnOff[i][1]=f[whichFolder]['color']['kT'][0][OnOff[i][1]]/1000
-        OnOff[i][2]=f[whichFolder]['color']['kT'][0][OnOff[i][2]]/1000
+        OnOff[i][1]=f[whichFolder][OnOff[i][1]]/1000
+        OnOff[i][2]=f[whichFolder][OnOff[i][2]]/1000
         df.append(pd.DataFrame(data={'onset':[OnOff[i][1]],  'offset':[OnOff[i][2]],  'label':[OnOff[i][0]]}))
+    if len(df)==0:
+        df.append(pd.DataFrame(data={'onset':[0],  'offset':[0],  'label':['b']}))
     df = pd.concat(df, axis=0)
     df.sort_values(by=('onset'), inplace=True)
     df.reset_index(inplace=True, drop=True)
@@ -194,8 +165,8 @@ def toPanda_train(train_label,whichFolder,f):
     OnOff=toOnOffSet(IntegerLabel)
     df=[]
     for i in range(len(OnOff)):
-        OnOff[i][1]=f[whichFolder]['color']['kT'][0][OnOff[i][1]]/1000
-        OnOff[i][2]=f[whichFolder]['color']['kT'][0][OnOff[i][2]]/1000
+        OnOff[i][1]=f[whichFolder][OnOff[i][1]]/1000
+        OnOff[i][2]=f[whichFolder][OnOff[i][2]]/1000
         df.append(pd.DataFrame(data={'onset':[OnOff[i][1]],  'offset':[OnOff[i][2]],  'label':[OnOff[i][0]]}))
     df = pd.concat(df, axis=0)
     df.sort_values(by=('onset'), inplace=True)
