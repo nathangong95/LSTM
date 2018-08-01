@@ -1,7 +1,8 @@
 import scipy.io as spio
 import h5py
 import numpy as np
-data_path='/home/zhengzheng/NathanCode/LSTM-master/Data'
+import os
+data_path=os.getcwd()+'/Data'
 Data = spio.loadmat(data_path+'/Folder.mat', squeeze_me=True,struct_as_record=True)
 data=[]
 for i in range(6):
