@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 import itertools
 import os
 import h5py
+import simjoints as sj
 
 def loadData(data_path):
     filelist=os.listdir(data_path)
@@ -28,10 +29,10 @@ def loadData(data_path):
     filelist.sort()
     for file in filelist:
         data=np.genfromtxt(data_path+file,delimiter=',')
-        _,s=data.shape
-        train_data.append(np.reshape(data[:14,:].T,(s,1,14)))
-        train_label.append(to_categorical(np.reshape(data[14,:],(s,))))
-        f.append(np.reshape(data[15,:],(s,)))
+        a,s=data.shape
+        train_data.append(np.reshape(data[:a-2,:].T,(s,1,a-2)))
+        train_label.append(to_categorical(np.reshape(data[a-2,:],(s,))))
+        f.append(np.reshape(data[a-1,:],(s,)))
     return train_data, train_label, f
 '''
 def loadData2(data_path):
@@ -69,6 +70,39 @@ def loadData2(data_path):
     return train_data, train_label, f
 '''
 
+def addFeature(self,Data):
+        """ Functions that add more feature on the existing data
+        Args:
+            Data (s*14 nparray): original 14 dimensional data
+        Returns:
+            (s*22 nparray): new 22 dimensional data
+        """
+        s,a=Data.shape
+        newData=np.zeros((s,22))
+        newData[:,:14]=Data
+        for i in range(s):
+            newData[i,14]=((Data[i,2]-Data[i,6])**2+(Data[i,3]-Data[i,7])**2)**0.5#Left lower
+            newData[i,15]=((Data[i,4]-Data[i,8])**2+(Data[i,5]-Data[i,9])**2)**0.5#Right lower
+            newData[i,16]=((Data[i,6]-Data[i,10])**2+(Data[i,7]-Data[i,11])**2)**0.5#Left Upper
+            newData[i,17]=((Data[i,8]-Data[i,12])**2+(Data[i,9]-Data[i,13])**2)**0.5#Right Upper
+        
+            v1=[Data[i,2]-Data[i,6],Data[i,3]-Data[i,7]]
+            v2=[Data[i,10]-Data[i,6],Data[i,11]-Data[i,7]]
+            newData[i,18]=sj.get_elbow_angle(v1,v2)#left elbow
+
+            v1=[Data[i,4]-Data[i,8],Data[i,5]-Data[i,9]]
+            v2=[Data[i,12]-Data[i,8],Data[i,13]-Data[i,9]]
+            newData[i,19]=sj.get_elbow_angle(v1,v2)#right elbow
+
+            v1=[Data[i,12]-Data[i,10],Data[i,13]-Data[i,11]]
+            v2=[Data[i,6]-Data[i,10],Data[i,7]-Data[i,11]]
+            newData[i,20]=sj.get_axillary_angle(v1,v2)#left shoulder
+        
+            v1=[Data[i,10]-Data[i,12],Data[i,11]-Data[i,13]]
+            v2=[Data[i,8]-Data[i,12],Data[i,9]-Data[i,13]]
+            newData[i,21]=sj.get_axillary_angle(v1,v2)#right shoulder
+        return newData
+
 def trainLSTM(train_data,train_label,Hidden_unit,batch_s,epoch):
     """ Low level train funciton
     Args:
@@ -76,8 +110,9 @@ def trainLSTM(train_data,train_label,Hidden_unit,batch_s,epoch):
     input: training data, training label, params
     output: model
     """
+    _,_,s=train_data[0].shape
     model = Sequential()
-    model.add(LSTM(Hidden_unit, input_shape=(1, 14)))
+    model.add(LSTM(Hidden_unit, input_shape=(1, s)))
     model.add(Dropout(0.5))
     model.add(Dense(4,activation='sigmoid'))
     model.compile(loss='categorical_crossentropy',
