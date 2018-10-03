@@ -11,8 +11,8 @@ import scipy.io as spio
 from keras import utils as np_utils
 from keras.utils import to_categorical
 import pandas as pd
-from keras.models import Sequential
-from keras.layers import Dense, Dropout
+from keras.models import Model
+from keras.layers import Dense, Dropout, Input
 from keras.layers import Embedding
 from keras.layers import LSTM
 import matplotlib.pyplot as plt
@@ -20,6 +20,7 @@ import itertools
 import os
 import h5py
 import simjoints as sj
+from keras.utils import plot_model
 
 def loadData(data_path):
     filelist=os.listdir(data_path)
@@ -111,6 +112,7 @@ def trainLSTM(train_data,train_label,Hidden_unit,batch_s,epoch):
     output: model
     """
     _,_,s=train_data[0].shape
+    '''
     model = Sequential()
     model.add(LSTM(Hidden_unit, input_shape=(1, s)))
     model.add(Dropout(0.5))
@@ -118,6 +120,17 @@ def trainLSTM(train_data,train_label,Hidden_unit,batch_s,epoch):
     model.compile(loss='categorical_crossentropy',
                   optimizer='rmsprop',
                   metrics=['accuracy'])
+    '''
+    data=Input(shape=(1,s))
+    lstm=LSTM(Hidden_unit)(data)
+    output=Dense(4,activation='sigmoid')(lstm)
+    model=Model(inputs=data, outputs=output)
+    plot_model(model, to_file='lstm_model.png')
+    model.compile(loss='categorical_crossentropy',
+                  optimizer='rmsprop',
+                  metrics=['accuracy'])
+    plot_model(model, to_file='lstm_model.png')
+
     for i in range(len(train_data)):
         model.fit(train_data[i],train_label[i], batch_size=batch_s, epochs=epoch)
     return model
@@ -128,6 +141,9 @@ def toIntegerLabel(l):
     input: one hot label
     output: integer label
     '''
+    #for ele in l:
+    #    if ele!=[0,0,0,1] and ele!=[0,0,1,0] and ele!=[0,1,0,0] and ele!=[1,0,0,0]:
+    #        print(ele)
     label=[]
     s,_=l.shape
     for i in range(s):

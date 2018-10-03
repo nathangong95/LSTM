@@ -100,8 +100,9 @@ def demo(data_path):
 	train_data=[]
 	train_label=[]
 	filelist.sort()
+	print(filelist)
 	data=np.genfromtxt(data_path+filelist[0],delimiter=',')
-	R,B=mjd(data)
+	R,B=mjd(data,20,1)
 	num_joint,window_size=R[1].shape
 	G=[np.zeros((num_joint,window_size))]*(len(R))
 	ims = []
@@ -119,5 +120,5 @@ def demo(data_path):
 	plt.show()
 
 if __name__=="__main__":
-	data_path="/home/zhengzheng/NathanCode/LSTM-master/Data22D/"
+	data_path="/home/nathan/WorkSpace/LSTM/Data22D/"
 	demo(data_path)
