@@ -1,14 +1,17 @@
 import sys
 import os
 sys.path.insert(0,os.getcwd()+'/Modules/')
-import model1
+import utils
+import models
 
 data_path=os.getcwd()+'/Data/'
-model=model1.LSTM_model1()
-model.load_14Ddata(data_path)
-print(len(model.train_data))
-print(len(model.train_label))
-print(model.train_data[0].shape)
-print(model.train_label[0].shape)
-model.build_model1()
-model.train_model1()
+data,label=utils.load_data(data_path)
+print(len(data))
+print(len(label))
+print(data[0].shape)
+print(label[0].shape)
+model1=models.Model1(data[:4],label[:4])
+model1.build_model()
+model1.train_model1()
+print(model1.predict(data[5]))
+model1.save_model()

@@ -3,6 +3,7 @@ import h5py
 import numpy as np
 import os
 import sys
+from keras.utils import to_categorical
 sys.path.insert(0,os.getcwd()+'/Modules/')
 import simjoints as sj
 
@@ -52,7 +53,7 @@ def make_22D_data(data_path):
         np.savetxt(data_path+'/part'+str(j+1)+'(22D).csv', newData.T, delimiter=",")
         j+=1
 
-def load_data(data_path,step_size=1,window_size=20):
+def load_data(data_path,step_size=5,window_size=20):
     filelist=os.listdir(data_path)
     train_data=[]
     train_label=[]
@@ -63,14 +64,7 @@ def load_data(data_path,step_size=1,window_size=20):
         train_data.append(np.reshape(data[:a-2,:].T,(s,a-2)))
         train_label.append(to_categorical(np.reshape(data[a-2,:],(s,))))
     # deal with the step size here
-    new_train_data,new_train_label=stack_data(train_data,train_label,step_size,window_size)
-    length_folder=len(new_train_data)
-    train_length=length_folder-length_folder/3
-    self.train_data=new_train_data[:train_length]
-    self.test_data=new_train_data[train_length:]
-    self.train_label=new_train_label[:train_length]
-    self.test_label=new_train_label[:train_length]
-    #return new_train_data,new_train_label
+    return stack_data(train_data,train_label,step_size,window_size)
 
 def stack_data(train_data,train_label,step_size,window_size):
     new_train_data=[]
@@ -80,11 +74,11 @@ def stack_data(train_data,train_label,step_size,window_size):
         new_train_dat=[]
         new_train_lab=[]
         for i in range(s):
-            if i%self.step_size==0:
+            if i%step_size==0:
                 window=[]
-                for j in range(self.window_size):
-                    if (i-self.window_size+j+1)>0:
-                        window.append(train_dat[i-self.window_size+j+1,:])
+                for j in range(window_size):
+                    if (i-window_size+j+1)>0:
+                        window.append(train_dat[i-window_size+j+1,:])
                     else:
                         window.append(np.reshape(np.zeros((1,d)),(d,)))
                 window=np.asarray(window)
