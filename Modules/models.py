@@ -24,7 +24,7 @@ class Model1:
 		lstm=LSTM(self.hidden_units)(data)
 		output=Dense(4,activation='sigmoid')(lstm)
 		model=Model(inputs=data, outputs=output)
-		plot_model(model, to_file='lstm_model.png')
+		#plot_model(model, to_file='lstm_model.png')
 		model.compile(loss='categorical_crossentropy',
 			optimizer='rmsprop',
 			metrics=['accuracy'])

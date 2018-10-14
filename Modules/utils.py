@@ -6,7 +6,8 @@ import sys
 from keras.utils import to_categorical
 sys.path.insert(0,os.getcwd()+'/Modules/')
 import simjoints as sj
-
+from numpy import linalg as LA
+from matplotlib import pyplot as plt
 # add feature part
 data_path=os.getcwd()+'/Data/'
 def make_22D_data(data_path): 
@@ -64,9 +65,12 @@ def load_data(data_path,step_size=5,window_size=20):
         train_data.append(np.reshape(data[:a-2,:].T,(s,a-2)))
         train_label.append(to_categorical(np.reshape(data[a-2,:],(s,))))
     # deal with the step size here
+    print(train_data[0].shape)
     return stack_data(train_data,train_label,step_size,window_size)
 
 def stack_data(train_data,train_label,step_size,window_size):
+    """ returns (a list of n*window_size*14, a list of n*4)
+    """
     new_train_data=[]
     new_train_label=[]
     for train_dat, train_lab in zip(train_data,train_label):
@@ -75,16 +79,40 @@ def stack_data(train_data,train_label,step_size,window_size):
         new_train_lab=[]
         for i in range(s):
             if i%step_size==0:
-                window=[]
-                for j in range(window_size):
-                    if (i-window_size+j+1)>0:
+                if i>=(window_size-1):
+                    window=[]
+                    for j in range(window_size):
                         window.append(train_dat[i-window_size+j+1,:])
-                    else:
-                        window.append(np.reshape(np.zeros((1,d)),(d,)))
-                window=np.asarray(window)
-                new_train_dat.append(window)
-                new_train_lab.append(train_lab[i])
+                    window=np.asarray(window)
+                    new_train_dat.append(window)
+                    new_train_lab.append(train_lab[i])
         new_train_data.append(np.asarray(new_train_dat))
         new_train_label.append(np.asarray(new_train_lab))
     return new_train_data,new_train_label
     
+def plot_speed_hist(data_path):
+    """ takes in n*1*14
+    """
+    stacked_data=load_data(data_path,1,2)
+    #print(len(stacked_data))
+    #print(len(stacked_data[0]))
+    #print(stacked_data[0][0].shape)
+    #print(stacked_data[1][0].shape)
+    speeds=[]
+    for data in stacked_data[0]:
+        speed=[]
+        s,_,_=data.shape
+        for i in range(s):
+            speed.append(LA.norm(data[i,1,:]-data[i,0,:]))
+        speeds.append(np.asarray(speed))
+    bins = np.arange(0, 40, 2)
+    for i in range(len(speeds)):
+        if i==2:
+            plt.title('Histogram of the speeds of each folder')
+        plt.subplot(2,3,i+1)
+        plt.xlim([0, 40])
+        plt.hist(speeds[i], bins=bins, alpha=0.5)
+
+    plt.show()
+data_path=os.getcwd()+'/../Data/'
+plot_speed_hist(data_path)

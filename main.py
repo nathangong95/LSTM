@@ -9,7 +9,7 @@ import LSTM
 #                    help="Path to the data folder")
 #args = parser.parse_args()
 #data_path=args.data_path
-data_path=os.getcwd()+'/MJDdata0/'
+data_path=os.getcwd()+'\\MJDdata0\\'
 train_data, train_label, f=LSTM.loadData(data_path)
 params=[64,15,50]
 result,pred=LSTM.trainning(train_data,train_label,f,params)
