@@ -1,4 +1,6 @@
 import scipy.io as spio
+import scipy
+from scipy.stats import pearsonr
 import h5py
 import numpy as np
 import os
@@ -94,10 +96,6 @@ def plot_speed_hist(data_path):
     """ takes in n*1*14
     """
     stacked_data=load_data(data_path,1,2)
-    #print(len(stacked_data))
-    #print(len(stacked_data[0]))
-    #print(stacked_data[0][0].shape)
-    #print(stacked_data[1][0].shape)
     speeds=[]
     for data in stacked_data[0]:
         speed=[]
@@ -114,5 +112,34 @@ def plot_speed_hist(data_path):
         plt.hist(speeds[i], bins=bins, alpha=0.5)
 
     plt.show()
-data_path=os.getcwd()+'/../Data/'
-plot_speed_hist(data_path)
+
+def train_model(model, train_data, train_label, batch_s, epo):
+    for train_dat, train_lab in zip(train_data,train_label):
+        model.fit(train_dat, train_lab, batch_size=batch_s, epochs=epo)
+    return model
+def predict(model, test_data):
+    return model.predict(test_data)
+def save_model(model, path):
+    model.save(path)
+def toIntegerLabel(l):
+    '''
+    low level helper function to transfer one hot label to integer label
+    input: one hot label
+    output: integer label
+    '''
+    #for ele in l:
+    #    if ele!=[0,0,0,1] and ele!=[0,0,1,0] and ele!=[0,1,0,0] and ele!=[1,0,0,0]:
+    #        print(ele)
+    label=[]
+    s,_=l.shape
+    for i in range(s):
+        label.append(l[i].tolist().index(max(l[i].tolist())))
+    return label
+def correlation(label, predict):
+    label = toIntegerLabel(label)
+    predict = toIntegerLabel(predict)
+    xcorrelation=np.correlate(label, predict)
+    pearson=pearsonr(label,predict)
+    return xcorrelation, pearson
+#data_path=os.getcwd()+'/../Data/'
+#plot_speed_hist(data_path)
