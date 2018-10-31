@@ -5,6 +5,8 @@ import h5py
 import numpy as np
 import os
 import sys
+import keras
+import datetime
 from keras.utils import to_categorical
 sys.path.insert(0,os.getcwd()+'/Modules/')
 import simjoints as sj
@@ -91,7 +93,9 @@ def stack_data(train_data,train_label,step_size,window_size):
         new_train_data.append(np.asarray(new_train_dat))
         new_train_label.append(np.asarray(new_train_lab))
     return new_train_data,new_train_label
-    
+def recover_from_stack(stacked_data):
+    a,_,b=stacked_data.shape
+    return np.reshape(stacked_data[:,0,:],(a,b))
 def plot_speed_hist(data_path):
     """ takes in n*1*14
     """
@@ -114,13 +118,30 @@ def plot_speed_hist(data_path):
     plt.show()
 
 def train_model(model, train_data, train_label, batch_s, epo):
-    for train_dat, train_lab in zip(train_data,train_label):
-        model.fit(train_dat, train_lab, batch_size=batch_s, epochs=epo)
-    return model
-def predict(model, test_data):
-    return model.predict(test_data)
-def save_model(model, path):
-    model.save(path)
+    model_copy = keras.models.clone_model(model)
+    model_copy.set_weights(model.get_weights())
+    model_copy.compile(loss='categorical_crossentropy',
+            optimizer='rmsprop',
+            metrics=['accuracy'])
+    call_back=[]
+    for i in range(len(train_data)):
+        val_X=train_data[i]
+        val_Y=train_label[i]
+        train_X=[train_data[j] for j in range(len(train_data)) if j!=i]
+        train_Y=[train_label[j] for j in range(len(train_data)) if j!=i]
+        train_x = np.vstack(train_X)
+        train_y = np.vstack(train_Y)
+        call_back.append(model_copy.fit(train_x, train_y, batch_size=batch_s, epochs=epo, validation_data=(val_X, val_Y)))
+    del model_copy
+    train_x=np.vstack(train_data)
+    train_y=np.vstack(train_label)
+    model.fit(train_x, train_y, batch_size=batch_s, epochs=epo)
+    return model, call_back
+
+#def predict(model, test_data):
+#    return model.predict(test_data)
+#def save_model(model, path):
+#    model.save(path)
 def toIntegerLabel(l):
     '''
     low level helper function to transfer one hot label to integer label
@@ -138,8 +159,49 @@ def toIntegerLabel(l):
 def correlation(label, predict):
     label = toIntegerLabel(label)
     predict = toIntegerLabel(predict)
-    xcorrelation=np.correlate(label, predict)
     pearson=pearsonr(label,predict)
-    return xcorrelation, pearson
+    return pearson
+def save_result(model, test_data, test_label, callback):
+    predict=[]
+    for test_dat in test_data:
+        predict.append(model.predict(test_dat))
+    score=[]
+    for test_labe, predic in zip(test_label,predict):
+        score.append(correlation(test_labe, predic))
+    now = datetime.datetime.now()
+
+    path=os.getcwd()+'/Result/'+str(now.year)+str(now.month)+str(now.day)+str(now.hour)+str(now.minute)
+    os.makedirs(path)
+    for i in range(len(test_data)):
+        data=recover_from_stack(test_data[i])
+        label=np.asarray(toIntegerLabel(test_label[i]))
+        pre=np.asarray(toIntegerLabel(predict[i]))
+        label=np.reshape(label,(label.shape[0],1))
+        pre=np.reshape(pre,(pre.shape[0],1))
+        save=np.concatenate((data, label, pre),axis=1)
+        np.savetxt(path+'/result_part'+str(i+1)+'.csv', save, delimiter=",")
+    model.save(path+'/model.h5')
+    i=0
+    for call in callback:
+        loss=call.history["loss"]
+        acc=call.history["acc"]
+        val_loss=call.history["val_loss"]
+        val_acc=call.history["val_acc"]
+        with open(path+"/loss_part"+str(i+1)+".txt", 'w') as f:
+            for s in loss:
+                f.write(str(s) + '\n')
+        with open(path+"/acc_part"+str(i+1)+".txt", 'w') as f:
+            for s in acc:
+                f.write(str(s) + '\n')
+        with open(path+"/val_loss_part"+str(i+1)+".txt", 'w') as f:
+            for s in val_loss:
+                f.write(str(s) + '\n')
+        with open(path+"/val_acc_part"+str(i+1)+".txt", 'w') as f:
+            for s in val_acc:
+                f.write(str(s) + '\n')
+        i+=1
+    with open(path+"/score.txt", 'w') as f:
+        f.write('\n'.join('%f %f' % x for x in score))
+    return None
 #data_path=os.getcwd()+'/../Data/'
 #plot_speed_hist(data_path)
