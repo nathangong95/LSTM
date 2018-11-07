@@ -72,6 +72,40 @@ def load_data(data_path,step_size=5,window_size=20):
     print(train_data[0].shape)
     return stack_data(train_data,train_label,step_size,window_size)
 
+def load_data_one_step_prediction(data_path,step_size=5,window_size=20):
+    filelist=os.listdir(data_path)
+    train_data=[]
+    filelist.sort()
+    for file in filelist:
+        data=np.genfromtxt(data_path+file,delimiter=',')
+        a,s=data.shape
+        train_data.append(np.reshape(data[:a-2,:].T,(s,a-2)))
+    # deal with the step size here
+    print(train_data[0].shape)
+    return stack_data_one_step_prediction(train_data,step_size,window_size)
+
+def stack_data_one_step_prediction(train_data,step_size,window_size):
+    """ returns (a list of n*window_size*14, a list of n*14)
+    """
+    new_train_data=[]
+    new_train_label=[]
+    for train_dat in train_data:
+        s,d=train_dat.shape
+        new_train_dat=[]
+        new_train_lab=[]
+        for i in range(s-1):
+            if i%step_size==0:
+                if i>=(window_size-1):
+                    window=[]
+                    for j in range(window_size):
+                        window.append(train_dat[i-window_size+j+1,:])
+                    window=np.asarray(window)
+                    new_train_dat.append(window)
+                    new_train_lab.append(train_dat[i+1])
+        new_train_data.append(np.asarray(new_train_dat))
+        new_train_label.append(np.asarray(new_train_lab))
+    return new_train_data,new_train_label
+
 def stack_data(train_data,train_label,step_size,window_size):
     """ returns (a list of n*window_size*14, a list of n*4)
     """
@@ -161,6 +195,57 @@ def correlation(label, predict):
     predict = toIntegerLabel(predict)
     pearson=pearsonr(label,predict)
     return pearson
+def mse(test_labe,predic):
+    """ both input: n*14
+        output:1*1 const
+    """
+    error=0
+    for i in range(test_labe.shape[0]):
+        e=test_labe[i,:]-predic[i,:]
+        e=e**2
+        error+=e.sum()**(1/2)
+    return error
+def save_result_one_step_prediction(model, test_data, test_label, callback):
+    predict=[]
+    for test_dat in test_data:
+        predict.append(model.predict(test_dat))
+    score=[]
+    for test_labe, predic in zip(test_label,predict):
+        score.append(mse(test_labe, predic))
+    now = datetime.datetime.now()
+
+    path=os.getcwd()+'/Result/'+str(now.year)+str(now.month)+str(now.day)+str(now.hour)+str(now.minute)
+    os.makedirs(path)
+    for i in range(len(test_data)):
+        data=recover_from_stack(test_data[i])
+        label=test_label[i]
+        pre=predict[i]
+        save=np.concatenate((data, label, pre),axis=1)
+        np.savetxt(path+'/result_part'+str(i+1)+'.csv', save, delimiter=",")
+    model.save(path+'/model.h5')
+    i=0
+    for call in callback:
+        loss=call.history["loss"]
+        acc=call.history["acc"]
+        val_loss=call.history["val_loss"]
+        val_acc=call.history["val_acc"]
+        with open(path+"/loss_part"+str(i+1)+".txt", 'w') as f:
+            for s in loss:
+                f.write(str(s) + '\n')
+        with open(path+"/acc_part"+str(i+1)+".txt", 'w') as f:
+            for s in acc:
+                f.write(str(s) + '\n')
+        with open(path+"/val_loss_part"+str(i+1)+".txt", 'w') as f:
+            for s in val_loss:
+                f.write(str(s) + '\n')
+        with open(path+"/val_acc_part"+str(i+1)+".txt", 'w') as f:
+            for s in val_acc:
+                f.write(str(s) + '\n')
+        i+=1
+    with open(path+"/score_mse.txt", 'w') as f:
+        f.write('\n'.join('%f' % x for x in score))
+    return None
+
 def save_result(model, test_data, test_label, callback):
     predict=[]
     for test_dat in test_data:
