@@ -127,6 +127,19 @@ def stack_data(train_data,train_label,step_size,window_size):
         new_train_data.append(np.asarray(new_train_dat))
         new_train_label.append(np.asarray(new_train_lab))
     return new_train_data,new_train_label
+
+def normalize(data,label):
+    """ for one step prediction
+    data: list of n*ws*14
+    label: list of n*14
+    """
+    output_data=[]
+    output_label=[]
+    for dat,lab in zip(data,label):
+        output_data.append(2*dat/255-1)
+        output_label.append(2*lab/255-1)
+    return output_data, output_label
+
 def recover_from_stack(stacked_data):
     a,_,b=stacked_data.shape
     return np.reshape(stacked_data[:,0,:],(a,b))
@@ -221,7 +234,8 @@ def save_result_one_step_prediction(model, test_data, test_label, callback):
         label=test_label[i]
         pre=predict[i]
         save=np.concatenate((data, label, pre),axis=1)
-        np.savetxt(path+'/result_part'+str(i+1)+'.csv', save, delimiter=",")
+        np.savetxt(path+'/GroundTruth'+str(i+1)+'.csv', label, delimiter=",")
+        np.savetxt(path+'/Prediction'+str(i+1)+'.csv', pre, delimiter=",")
     model.save(path+'/model.h5')
     i=0
     for call in callback:

@@ -36,7 +36,7 @@ class onestepModel:
 		lstm=LSTM(self.hidden_units)(data)
 		output=Dense(d,activation='linear')(lstm)
 		model=Model(inputs=data, outputs=output)
-		plot_model(model, to_file='onse_step_prediction.png')
+		#plot_model(model, to_file='onse_step_prediction.png')
 		model.compile(loss='mean_squared_error',
 			optimizer='adadelta',
 			metrics=['mse'])
