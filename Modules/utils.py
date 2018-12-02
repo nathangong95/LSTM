@@ -79,7 +79,7 @@ def load_data_one_step_prediction(data_path,step_size=5,window_size=20):
     for file in filelist:
         data=np.genfromtxt(data_path+file,delimiter=',')
         a,s=data.shape
-        train_data.append(np.reshape(data[:a-2,:].T,(s,a-2)))
+        train_data.append(np.reshape(data[:14,:].T,(s,14)))
     # deal with the step size here
     print(train_data[0].shape)
     return stack_data_one_step_prediction(train_data,step_size,window_size)
@@ -139,7 +139,9 @@ def normalize(data,label):
         output_data.append(2*dat/255-1)
         output_label.append(2*lab/255-1)
     return output_data, output_label
-
+def recover_from_normalize(data):
+    #data:14*n
+    return (data+1)*255/2
 def recover_from_stack(stacked_data):
     a,_,b=stacked_data.shape
     return np.reshape(stacked_data[:,0,:],(a,b))
@@ -167,9 +169,9 @@ def plot_speed_hist(data_path):
 def train_model(model, train_data, train_label, batch_s, epo):
     model_copy = keras.models.clone_model(model)
     model_copy.set_weights(model.get_weights())
-    model_copy.compile(loss='categorical_crossentropy',
-            optimizer='rmsprop',
-            metrics=['accuracy'])
+    model_copy.compile(loss='mean_squared_error',
+            optimizer='adadelta',
+            metrics=['mse'])
     call_back=[]
     for i in range(len(train_data)):
         val_X=train_data[i]
@@ -218,6 +220,7 @@ def mse(test_labe,predic):
         e=e**2
         error+=e.sum()**(1/2)
     return error
+
 def save_result_one_step_prediction(model, test_data, test_label, callback):
     predict=[]
     for test_dat in test_data:
@@ -234,26 +237,26 @@ def save_result_one_step_prediction(model, test_data, test_label, callback):
         label=test_label[i]
         pre=predict[i]
         save=np.concatenate((data, label, pre),axis=1)
-        np.savetxt(path+'/GroundTruth'+str(i+1)+'.csv', label, delimiter=",")
-        np.savetxt(path+'/Prediction'+str(i+1)+'.csv', pre, delimiter=",")
+        np.savetxt(path+'/GroundTruth'+str(i+1)+'.csv', recover_from_normalize(label), delimiter=",")
+        np.savetxt(path+'/Prediction'+str(i+1)+'.csv', recover_from_normalize(pre), delimiter=",")
     model.save(path+'/model.h5')
     i=0
     for call in callback:
         loss=call.history["loss"]
-        acc=call.history["acc"]
+        mse_=call.history["mean_squared_error"]
         val_loss=call.history["val_loss"]
-        val_acc=call.history["val_acc"]
+        val_mse=call.history["val_mean_squared_error"]
         with open(path+"/loss_part"+str(i+1)+".txt", 'w') as f:
             for s in loss:
                 f.write(str(s) + '\n')
-        with open(path+"/acc_part"+str(i+1)+".txt", 'w') as f:
-            for s in acc:
+        with open(path+"/mse_part"+str(i+1)+".txt", 'w') as f:
+            for s in mse_:
                 f.write(str(s) + '\n')
         with open(path+"/val_loss_part"+str(i+1)+".txt", 'w') as f:
             for s in val_loss:
                 f.write(str(s) + '\n')
-        with open(path+"/val_acc_part"+str(i+1)+".txt", 'w') as f:
-            for s in val_acc:
+        with open(path+"/val_mse_part"+str(i+1)+".txt", 'w') as f:
+            for s in val_mse:
                 f.write(str(s) + '\n')
         i+=1
     with open(path+"/score_mse.txt", 'w') as f:
