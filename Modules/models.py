@@ -3,6 +3,7 @@ from keras.layers import Embedding
 from keras.utils import to_categorical, plot_model
 from keras.layers import LSTM
 from keras.layers import Dense, Dropout, Input
+from keras import optimizers
 import os
 import numpy as np
 
@@ -37,8 +38,9 @@ class onestepModel:
 		output=Dense(d,activation='linear')(lstm)
 		model=Model(inputs=data, outputs=output)
 		#plot_model(model, to_file='onse_step_prediction.png')
+		rmsprop = optimizers.RMSprop(lr=0.001, rho=0.9, epsilon=None, decay=0.0)
 		model.compile(loss='mean_squared_error',
-			optimizer='adadelta',
+			optimizer=rmsprop,
 			metrics=['mse'])
 		print(model.summary())
 		return model

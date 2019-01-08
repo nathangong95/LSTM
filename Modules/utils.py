@@ -8,6 +8,7 @@ import sys
 import keras
 import datetime
 from keras.utils import to_categorical
+from keras import optimizers
 sys.path.insert(0,os.getcwd()+'/Modules/')
 import simjoints as sj
 from numpy import linalg as LA
@@ -169,8 +170,9 @@ def plot_speed_hist(data_path):
 def train_model(model, train_data, train_label, batch_s, epo):
     model_copy = keras.models.clone_model(model)
     model_copy.set_weights(model.get_weights())
+    rmsprop = optimizers.RMSprop(lr=0.001, rho=0.9, epsilon=None, decay=0.0)
     model_copy.compile(loss='mean_squared_error',
-            optimizer='adadelta',
+            optimizer=rmsprop,
             metrics=['mse'])
     call_back=[]
     for i in range(len(train_data)):

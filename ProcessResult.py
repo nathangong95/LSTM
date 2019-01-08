@@ -21,7 +21,7 @@ GT1:NY531
 GT2:RCH1
 GT3:RCH3
 """
-which_result='201917745'
+which_result='201918545 (rmp and hidden Unit modified)'
 path=os.getcwd()+'/Result/'+which_result+'/'
 GT1=np.genfromtxt(path+'GroundTruth1.csv',delimiter=',')
 GT2=np.genfromtxt(path+'GroundTruth2.csv',delimiter=',')
