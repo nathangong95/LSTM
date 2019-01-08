@@ -21,15 +21,15 @@ GT1:NY531
 GT2:RCH1
 GT3:RCH3
 """
-which_result='20181212319'
+which_result='201917745'
 path=os.getcwd()+'/Result/'+which_result+'/'
 GT1=np.genfromtxt(path+'GroundTruth1.csv',delimiter=',')
 GT2=np.genfromtxt(path+'GroundTruth2.csv',delimiter=',')
-GT3=np.genfromtxt(path+'GroundTruth3.csv',delimiter=',')
+#GT3=np.genfromtxt(path+'GroundTruth3.csv',delimiter=',')
 
 PD1=np.genfromtxt(path+'Prediction1.csv',delimiter=',')
 PD2=np.genfromtxt(path+'Prediction2.csv',delimiter=',')
-PD3=np.genfromtxt(path+'Prediction3.csv',delimiter=',')
+#PD3=np.genfromtxt(path+'Prediction3.csv',delimiter=',')
 
 def percentage_in_range(GT,PD,r):
 	rate=[]
@@ -113,7 +113,7 @@ plt.ylabel('r shoulder accuracy')
 plt.xlabel('distance')
 plt.show()
 
-
+'''
 head=[]
 l_hand=[]
 r_hand=[]
@@ -238,3 +238,4 @@ plt.gca().legend(('LSTM','Naive'))
 plt.ylabel('r shoulder accuracy')
 plt.xlabel('distance')
 plt.show()
+'''
