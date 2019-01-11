@@ -38,9 +38,10 @@ class onestepModel:
 		output=Dense(d,activation='linear')(lstm)
 		model=Model(inputs=data, outputs=output)
 		#plot_model(model, to_file='onse_step_prediction.png')
-		rmsprop = optimizers.RMSprop(lr=0.001, rho=0.9, epsilon=None, decay=0.0)
+		sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+		#rmsprop = optimizers.RMSprop(lr=0.001, rho=0.9, epsilon=None, decay=0.0)
 		model.compile(loss='mean_squared_error',
-			optimizer=rmsprop,
+			optimizer=sgd,
 			metrics=['mse'])
 		print(model.summary())
 		return model

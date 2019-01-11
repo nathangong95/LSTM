@@ -21,14 +21,14 @@ GT1:NY531
 GT2:RCH1
 GT3:RCH3
 """
-which_result='201918545 (rmp and hidden Unit modified)'
+which_result='20191101124'
 path=os.getcwd()+'/Result/'+which_result+'/'
 GT1=np.genfromtxt(path+'GroundTruth1.csv',delimiter=',')
-GT2=np.genfromtxt(path+'GroundTruth2.csv',delimiter=',')
+#GT2=np.genfromtxt(path+'GroundTruth2.csv',delimiter=',')
 #GT3=np.genfromtxt(path+'GroundTruth3.csv',delimiter=',')
 
 PD1=np.genfromtxt(path+'Prediction1.csv',delimiter=',')
-PD2=np.genfromtxt(path+'Prediction2.csv',delimiter=',')
+#PD2=np.genfromtxt(path+'Prediction2.csv',delimiter=',')
 #PD3=np.genfromtxt(path+'Prediction3.csv',delimiter=',')
 
 def percentage_in_range(GT,PD,r):
