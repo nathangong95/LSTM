@@ -21,7 +21,7 @@ GT1:NY531
 GT2:RCH1
 GT3:RCH3
 """
-which_result='20191101124'
+which_result='2019111124'
 path=os.getcwd()+'/Result/'+which_result+'/'
 GT1=np.genfromtxt(path+'GroundTruth1.csv',delimiter=',')
 #GT2=np.genfromtxt(path+'GroundTruth2.csv',delimiter=',')

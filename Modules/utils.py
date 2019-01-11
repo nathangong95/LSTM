@@ -73,7 +73,7 @@ def load_data(data_path,step_size=5,window_size=20):
     print(train_data[0].shape)
     return stack_data(train_data,train_label,step_size,window_size)
 
-def load_data_one_step_prediction(data_path,step_size=5,window_size=20):
+def load_data_one_step_prediction(data_path,step_size=5,window_size=20, moving_only=False):
     filelist=os.listdir(data_path)
     train_data=[]
     filelist.sort()
@@ -83,9 +83,9 @@ def load_data_one_step_prediction(data_path,step_size=5,window_size=20):
         train_data.append(np.reshape(data[:14,:].T,(s,14)))
     # deal with the step size here
     print(train_data[0].shape)
-    return stack_data_one_step_prediction(train_data,step_size,window_size)
+    return stack_data_one_step_prediction(train_data,step_size,window_size, moving_only)
 
-def stack_data_one_step_prediction(train_data,step_size,window_size):
+def stack_data_one_step_prediction(train_data,step_size,window_size, moving_only):
     """ returns (a list of n*window_size*14, a list of n*14)
     """
     new_train_data=[]
@@ -101,8 +101,13 @@ def stack_data_one_step_prediction(train_data,step_size,window_size):
                     for j in range(window_size):
                         window.append(train_dat[i-window_size+j+1,:])
                     window=np.asarray(window)
-                    new_train_dat.append(window)
-                    new_train_lab.append(train_dat[i+1])
+                    if moving_only:
+                        if (window[window.shape[0]-1,:]==train_dat[i+1]).all():
+                            new_train_dat.append(window)
+                            new_train_lab.append(train_dat[i+1])
+                    else:
+                        new_train_dat.append(window)
+                        new_train_lab.append(train_dat[i+1])
         new_train_data.append(np.asarray(new_train_dat))
         new_train_label.append(np.asarray(new_train_lab))
     return new_train_data,new_train_label
