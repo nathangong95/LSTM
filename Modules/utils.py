@@ -102,7 +102,7 @@ def stack_data_one_step_prediction(train_data,step_size,window_size, moving_only
                         window.append(train_dat[i-window_size+j+1,:])
                     window=np.asarray(window)
                     if moving_only:
-                        if (window[window.shape[0]-1,:]==train_dat[i+1]).all():
+                        if not (window[window.shape[0]-1,:]==train_dat[i+1]).all():
                             new_train_dat.append(window)
                             new_train_lab.append(train_dat[i+1])
                     else:

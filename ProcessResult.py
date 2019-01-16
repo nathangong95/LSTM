@@ -21,7 +21,7 @@ GT1:NY531
 GT2:RCH1
 GT3:RCH3
 """
-which_result='2019111124'
+which_result='20191101124 (tested on manually annotated)'
 path=os.getcwd()+'/Result/'+which_result+'/'
 GT1=np.genfromtxt(path+'GroundTruth1.csv',delimiter=',')
 #GT2=np.genfromtxt(path+'GroundTruth2.csv',delimiter=',')
@@ -50,7 +50,7 @@ def percentage_in_range(GT,PD,r):
 		rate_navie.append(hit_navie/(GT.shape[0]-1))
 	return rate, rate_navie#list with len 7
 
-r=np.arange(0,30,0.1)
+r=np.arange(0,30,1)
 head=[]
 l_hand=[]
 r_hand=[]
