@@ -58,7 +58,42 @@ def make_22D_data(data_path):
             newData[i,23]=Data[i,15]
         np.savetxt(data_path+'/part'+str(j+1)+'(22D).csv', newData.T, delimiter=",")
         j+=1
-
+def load_moving_data(data_path, threshold):
+    train_data,_=load_data_one_step_prediction(data_path,step_size=1,window_size=1,moving_only=False)
+    train_data=np.concatenate(train_data)
+    s,_,_=train_data.shape
+    train_data=np.reshape(train_data, (s,14))
+    data=[]
+    for i in range(7):
+        data.append(train_data[:,i*2:(i+1)*2])
+    #print(data[0].shape)
+    #print(len(data))
+    speed=[]
+    for i in range(7):
+        temp=[]
+        for j in range(1,data[i].shape[0]):
+            temp.append(((data[i][j,0]-data[i][j-1,0])**2+(data[i][j,1]-data[i][j-1,1])**2)**0.5)
+        speed.append(np.asarray(temp))
+    moving_list=[]
+    tmp=[]
+    for i in range(speed[0].shape[0]):
+        if not any_moving(speed,i,threshold):
+            if len(tmp)>2:
+                moving_list.append(np.asarray(tmp))
+            tmp=[]
+        else:
+            if len(tmp)==0:
+                tmp.append(train_data[i,:])
+            tmp.append(train_data[i+1,:])
+        if i==speed[0].shape[0]-1:
+            if len(tmp)>2:
+                moving_list.append(tmp)
+    return moving_list
+def any_moving(speed, which_i, threshold):
+    for i in range(7):
+        if speed[i][which_i]>threshold:
+            return True
+    return False
 def load_data(data_path,step_size=5,window_size=20):
     filelist=os.listdir(data_path)
     train_data=[]
@@ -82,7 +117,7 @@ def load_data_one_step_prediction(data_path,step_size=5,window_size=20, moving_o
         a,s=data.shape
         train_data.append(np.reshape(data[:14,:].T,(s,14)))
     # deal with the step size here
-    print(train_data[0].shape)
+    #print(train_data[0].shape)
     return stack_data_one_step_prediction(train_data,step_size,window_size, moving_only)
 
 def stack_data_one_step_prediction(train_data,step_size,window_size, moving_only):
