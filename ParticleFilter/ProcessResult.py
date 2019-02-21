@@ -58,7 +58,7 @@ for i in range(7):
 for i in range(7):
 	plt.subplot(4,2,i+1)
 	plt.plot(r,joints[i],r,joints_kf[i],r,joints_pf[i])
-	plt.gca().legend(('HV','KF','PF with 1k particles'))
+	plt.gca().legend(('HV','KF','PF with a with 1k particles using median'))
 	plt.ylabel(name[i]+' accuracy')
 	plt.xlabel('distance')
 plt.show()

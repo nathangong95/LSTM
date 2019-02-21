@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 import cv2
 
 heatmap_path='../../Heatmaps/'
-Q=np.load('Data/Q.npy')
+Q=np.load('Data/R_with_a.npy')
 print(Q)
 R=np.load('Data/R.npy')
 print(R)
@@ -63,10 +63,15 @@ def particle_filter(joints, heatmap_path, Q, num_particles):
 		Q: 4*4*7
 	"""
 	dt=1
-	A=np.array([[1,0,dt,0],[0,1,0,dt],[0,0,1,0],[0,0,0,1]])
-	B=np.array([[1,0,0,0],[0,1,0,0]])
+	A=np.array([[1,0,dt,0,0.5*dt,0],
+		[0,1,0,dt,0,0.5*dt],
+		[0,0,1,0,1,0],
+		[0,0,0,1,0,1],
+		[0,0,0,0,1,0],
+		[0,0,0,0,0,1]])
+	#B=np.array([[1,0,0,0],[0,1,0,0]])
 	joints_particle=np.zeros((3000,7,2))
-	for j in range(1,7):
+	for j in range(2,7):
 		Q_=Q[:,:,j]
 		for i in range(joints.shape[0]):
 			print(i)
@@ -78,7 +83,9 @@ def particle_filter(joints, heatmap_path, Q, num_particles):
 					pos=sampling_from_heatmap(heatmap)
 					pos.append(0)
 					pos.append(0)
-					particles.append(np.reshape(np.asarray(pos),(4,1)))
+					pos.append(0)
+					pos.append(0)
+					particles.append(np.reshape(np.asarray(pos),(6,1)))
 				weight=[]
 				for part in particles:
 					weight.append(heatmap[part[0,0],part[1,0]])#
@@ -88,7 +95,7 @@ def particle_filter(joints, heatmap_path, Q, num_particles):
 				new_particles=[]
 				for k in range(num_particles):
 					particle_k=importance_sampling(particles, weight)
-					new_particles.append(np.reshape(np.random.multivariate_normal(np.reshape(np.matmul(A,particle_k),(4,)), Q_, 1),(4,1)))
+					new_particles.append(np.reshape(np.random.multivariate_normal(np.reshape(np.matmul(A,particle_k),(6,)), Q_, 1),(6,1)))
 				for k in range(num_particles):
 					new_particles[k][0,0]=int(new_particles[k][0,0])
 					new_particles[k][1,0]=int(new_particles[k][1,0])
@@ -110,8 +117,8 @@ def particle_filter(joints, heatmap_path, Q, num_particles):
 				for x in range(len(particles)):
 					sum_x+=particles[x][0]
 					sum_y+=particles[x][1]
-				joints_particle[i,j,0]=sum_x/float(num_particles)
-				joints_particle[i,j,1]=sum_y/float(num_particles)
+				joints_particle[i,j,0]=sum_x/float(num_particles)#np.median(sum_x)#sum_x/float(num_particles)
+				joints_particle[i,j,1]=sum_y/float(num_particles)#np.median(sum_y)#sum_y/float(num_particles)
 			
 			#uncomment to visualize each step
 			
@@ -119,16 +126,24 @@ def particle_filter(joints, heatmap_path, Q, num_particles):
 			print(joints_particle[i,j,:])
 			print('heatmap is')
 			print(np.where(heatmap==heatmap.max()))
-			fig=plt.figure()
-			ax = fig.gca()
+			#fig=plt.figure()
+			#ax = fig.gca()
+			fig, ax = plt.subplots( nrows=1, ncols=1 )
 			ax.imshow(heatmap)
 			for part in particles:
 				ax.plot(part[1],part[0], marker='o', markersize=3, color="red")
+			fig.savefig('RHplot/joints'+''+str(i-1)+'.png')
 			#ax.colorbar()
-			plt.show()
+			#plt.show(block=False)
+			#plt.pause(0.1)
+			#plt.close()
 			
 	return joints_particle
 
-
-joints_particlefilter=particle_filter(joints, heatmap_path, Q, 100)
+#fig=plt.figure()
+#ax=fig.gca()
+#plt.show()
+#fig, ax = plt.subplots( nrows=1, ncols=1 )
+#fig.show()
+joints_particlefilter=particle_filter(joints, heatmap_path, Q, 1000)
 np.save('joints_particle.npy',joints_particlefilter)
