@@ -6,9 +6,9 @@ import cv2
 
 heatmap_path='../../Heatmaps/'
 Q=np.load('Data/Q.npy')
-print(Q.shape)
+print(Q)
 R=np.load('Data/R.npy')
-print(R.shape)
+print(R)
 joints=np.load('Data/jointsfromheatmap.npy')
 print(joints.shape)
 
