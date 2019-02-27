@@ -7,45 +7,44 @@ from keras import optimizers
 import os
 import numpy as np
 
+
 class Model1:
-	def __init__(self, data_shape, hidden_units=30):
-		""" data: n*window_size*d
+    def __init__(self, data_shape, hidden_units=30):
+        """ data: n*window_size*d
 			label: n*4
 		"""
-		self.data_shape=data_shape
-		self.hidden_units=hidden_units
+        self.data_shape = data_shape
+        self.hidden_units = hidden_units
 
-	def build_model(self):
-		(_,window_size,d)=self.data_shape
-		data=Input(shape=(window_size,d))
-		lstm=LSTM(self.hidden_units)(data)
-		output=Dense(4,activation='sigmoid')(lstm)
-		model=Model(inputs=data, outputs=output)
-		#plot_model(model, to_file='lstm_model.png')
-		model.compile(loss='categorical_crossentropy',
-			optimizer='rmsprop',
-			metrics=['accuracy'])
-		print(model.summary())
-		return model
+    def build_model(self):
+        (_, window_size, d) = self.data_shape
+        data = Input(shape=(window_size, d))
+        lstm = LSTM(self.hidden_units)(data)
+        output = Dense(4, activation='sigmoid')(lstm)
+        model = Model(inputs=data, outputs=output)
+        # plot_model(model, to_file='lstm_model.png')
+        model.compile(loss='categorical_crossentropy',
+                      optimizer='rmsprop',
+                      metrics=['accuracy'])
+        print(model.summary())
+        return model
+
+
 class onestepModel:
-	def __init__(self, data_shape, hidden_units=30):
-		self.data_shape=data_shape
-		self.hidden_units=hidden_units
-	def build_model(self):
-		(_,window_size,d)=self.data_shape
-		data=Input(shape=(window_size,d))
-		lstm=LSTM(self.hidden_units)(data)
-		output=Dense(d,activation='linear')(lstm)
-		model=Model(inputs=data, outputs=output)
-		#plot_model(model, to_file='onse_step_prediction.png')
-		sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
-		#rmsprop = optimizers.RMSprop(lr=0.001, rho=0.9, epsilon=None, decay=0.0)
-		model.compile(loss='mean_squared_error',
-			optimizer=sgd,
-			metrics=['mse'])
-		print(model.summary())
-		return model
+    def __init__(self, data_shape, hidden_units=30):
+        self.data_shape = data_shape
+        self.hidden_units = hidden_units
 
-
-
-
+    def build_model(self):
+        (_, window_size, d) = self.data_shape
+        data = Input(shape=(window_size, d))
+        lstm = LSTM(self.hidden_units, return_sequences=True)(data)
+        output = Dense(d, activation='linear')(lstm)
+        model = Model(inputs=data, outputs=output)
+        # plot_model(model, to_file='onse_step_prediction.png')
+        sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+        model.compile(loss='mean_squared_error',
+                      optimizer=sgd,
+                      metrics=['mse'])
+        print(model.summary())
+        return model
