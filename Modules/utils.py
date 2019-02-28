@@ -389,5 +389,70 @@ def save_result(model, test_data, test_label, callback):
     with open(path + "/score.txt", 'w') as f:
         f.write('\n'.join('%f %f' % x for x in score))
     return None
+
+
+def estimateQR_with_a(joints, est):
+    # 13494,7,2
+    # print(joints[0,:,:])
+    # print(est[0,:,:])
+    s = joints.shape[0]
+    F = np.array([[1.0, 0.0, 1.0, 0.0, 0.5, 0.0],
+                  [0.0, 1.0, 0.0, 1.0, 0.0, 0.5],
+                  [0.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+                  [0.0, 0.0, 0.0, 1.0, 0.0, 1.0],
+                  [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+                  [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]])
+
+    X = np.zeros((6, 7, s))
+    for i in range(2, s):
+        for j in range(7):
+            X[0, j, i] = joints[i, j, 0]
+            X[1, j, i] = joints[i, j, 1]
+            X[2, j, i] = joints[i, j, 0] - joints[i - 1, j, 0]
+            X[3, j, i] = joints[i, j, 1] - joints[i - 1, j, 1]
+            X[4, j, i] = joints[i, j, 0] - joints[i - 1, j, 0] - joints[i - 1, j, 0] + joints[i - 2, j, 0]
+            X[5, j, i] = joints[i, j, 1] - joints[i - 1, j, 1] - joints[i - 1, j, 1] + joints[i - 2, j, 1]
+    for j in range(7):
+        X[0, j, 0] = joints[0, j, 0]
+        X[1, j, 0] = joints[0, j, 1]
+
+        X[0, j, 1] = joints[1, j, 0]
+        X[1, j, 1] = joints[1, j, 1]
+
+        X[2, j, 1] = joints[1, j, 0] - joints[0, j, 0]
+        X[3, j, 1] = joints[1, j, 1] - joints[0, j, 1]
+
+    R = np.zeros((6, 6, 7))
+    Q = np.zeros((2, 2, 7))
+    for j in range(7):
+        for i in range(2, s):
+            # print(F.shape)
+            # print(X[:,j,i].shape)
+            jointji = np.reshape(X[:, j, i], (6, 1))
+            jointji_1 = np.reshape(X[:, j, i - 1], (6, 1))
+            tmp = jointji - F @ jointji_1
+            # print(tmp.shape)
+            R[:, :, j] += tmp @ tmp.T
+        R[:, :, j] /= (s - 2)
+        for i in range(s):
+            Q[:, :, j] += np.reshape((est[i, j, :] - joints[i, j, :]), (2, 1)) @ np.reshape(
+                (est[i, j, :] - joints[i, j, :]), (1, 2))
+        Q[:, :, j] = Q[:, :, j] / float(s)
+    return R, Q
+
+
+def estimateR_with_LSTM(joints, est):
+    # 13494,7,2
+    # print(joints[0,:,:])
+    # print(est[0,:,:])
+    s = joints.shape[0]
+    R = np.zeros((2, 2, 7))
+    for i in range(7):
+        for j in range(s):
+            tmp = np.reshape(joints[j, i, :] - est[j, i, :], (2, 1))
+            R[:, :, i] += tmp @ tmp.T
+        R[:, :, i] /= s
+
+    return R
 # data_path=os.getcwd()+'/../Data/'
 # plot_speed_hist(data_path)
