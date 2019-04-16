@@ -9,6 +9,7 @@ def extract_humanEva_label(file_data, which_subject, which_action, which_cam, se
            76]
     file_data = file_data.split('\n')
     joints_data = []
+    image_id = []
     for dat in file_data:
         splited = dat.split(',')
         names = splited[0].split('/')
@@ -23,5 +24,6 @@ def extract_humanEva_label(file_data, which_subject, which_action, which_cam, se
                 for i in range(len(selected_joints)):
                     sort_joints[i, :] = joints[joints_names.index(selected_joints[i]), :]
                 joints_data.append(sort_joints)
-    joints_data = np.asarray(joints_data)
-    return joints_data
+                image_id.append(int(names[6].split('.')[0]))
+    # joints_data = np.asarray(joints_data)
+    return joints_data, image_id

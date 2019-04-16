@@ -46,12 +46,10 @@ def plot_result(GT, data, names):
 GT = np.load('Data/joints_manual.npy')
 #HM = np.load('Data/jointsfromheatmap.npy')
 KF = np.load('Data/joints_kalman.npy')
-PF0 = np.load('joints_particle0.1.npy')
-PF1 = np.load('joints_particle0.01.npy')
-PF2 = np.load('joints_particle0.001.npy')
-PF3 = np.load('joints_particle0.0001.npy')
-data = [KF, PF0, PF1, PF2, PF3]
-names = ['Patient-Pose', 'PF a = 0.1', 'PF a = 0.01', 'PF a = 0.001', 'PF a = 0.0001']
+PF = np.load('joints_particle0.1.npy')
+PFLSTM = np.load('joints_particle.npy')
+data = [KF, PF, PFLSTM]
+names = ['Patient-Pose', 'PF', 'PF LSTM']
 plot_result(GT, data, names)
 # r = np.arange(0, 30, 0.1)
 # joints = [[], [], [], [], [], [], []]

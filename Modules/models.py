@@ -11,8 +11,8 @@ import numpy as np
 class Model1:
     def __init__(self, data_shape, hidden_units=30):
         """ data: n*window_size*d
-			label: n*4
-		"""
+            label: n*4
+        """
         self.data_shape = data_shape
         self.hidden_units = hidden_units
 

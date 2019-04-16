@@ -6,7 +6,7 @@ import keras
 import datetime
 from keras.utils import to_categorical
 from keras import optimizers
-
+from keras.callbacks import EarlyStopping, ModelCheckpoint
 sys.path.insert(0, os.getcwd() + '/Modules/')
 import simjoints as sj
 from numpy import linalg as LA
@@ -248,16 +248,15 @@ def train_model(model, train_data, train_label, batch_s, epo, cross_val=False):
             call_back.append(
                 model_copy.fit(train_x, train_y, batch_size=batch_s, epochs=epo, validation_data=(val_X, val_Y)))
         del model_copy
-    train_x = np.vstack(train_data)
-    train_y = np.vstack(train_label)
-    call_back.append(model.fit(train_x, train_y, batch_size=batch_s, epochs=epo))
+    train_x = np.vstack(train_data[1:])
+    train_y = np.vstack(train_label[1:])
+    callbacks = [EarlyStopping(monitor='val_loss', patience=0),
+                 ModelCheckpoint(filepath='best_model.h5', monitor='val_loss', save_best_only=True)]
+    call_back.append(model.fit(train_x, train_y, batch_size=batch_s, epochs=epo, callbacks=callbacks,
+                               validation_data=(train_data[0], train_label[0])))
     return model, call_back
 
 
-# def predict(model, test_data):
-#    return model.predict(test_data)
-# def save_model(model, path):
-#    model.save(path)
 def toIntegerLabel(l):
     '''
     low level helper function to transfer one hot label to integer label
@@ -446,13 +445,13 @@ def estimateR_with_LSTM(joints, est):
     # print(joints[0,:,:])
     # print(est[0,:,:])
     s = joints.shape[0]
-    R = np.zeros((2, 2, 7))
-    for i in range(7):
-        for j in range(s):
-            tmp = np.reshape(joints[j, i, :] - est[j, i, :], (2, 1))
-            R[:, :, i] += tmp @ tmp.T
-        R[:, :, i] /= s
-
+    joints_reshaped = np.reshape(joints, (s, 14))
+    est_reshaped = np.reshape(est, (s, 14))
+    R = np.zeros((14, 14))
+    for j in range(s):
+        tmp = np.reshape(joints_reshaped[j, :] - est_reshaped[j, :], (14, 1))
+        R += tmp @ tmp.T
+    R /= s
     return R
 # data_path=os.getcwd()+'/../Data/'
 # plot_speed_hist(data_path)
