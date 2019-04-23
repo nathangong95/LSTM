@@ -1,30 +1,84 @@
+from keras.models import Model
+from keras.layers import LSTM
+from keras.layers import Dense, Input
+from keras import optimizers
 import numpy as np
-from operator import itemgetter
 
-train_file = open('train_data', 'r')
-train_data = train_file.read()
-
-
-def extract_humanEva_label(file_data, which_subject, which_action, which_cam):
-    idx = [10, 11, 15, 16, 20, 21, 25, 26, 30, 31, 35, 36, 40, 41, 45, 46, 50, 51, 55, 56, 60, 61, 65, 66, 70, 71, 75,
-           76]
-    file_data = file_data.split('\n')
-    joints_data = []
-    for dat in file_data:
-        splited = dat.split(',')
-        names = splited[0].split('/')
-        if len(names) == 7:
-            if names[3] == which_subject and names[4] == which_action and names[5] == which_cam:
-                joints = itemgetter(*idx)(splited)
-                joints = [float(i) for i in joints]
-                joints = np.asarray(joints)
-                joints = np.reshape(joints, (28, 1))
-                joints = np.reshape(joints, (14, 2))
-                joints_data.append(joints)
-    joints_data = np.asarray(joints_data)
-    return joints_data
+window_size = 2
+d = 4
+hidden_unit = 3
+data = Input(shape=(window_size, d))
+lstm, state_h, state_c = LSTM(hidden_unit, return_sequences=True, return_state=True)(data)
+output = Dense(d, activation='linear')(lstm)
+model = Model(inputs=data, outputs=output)
+sgd = optimizers.SGD(lr=0.001)
+model.compile(loss='mean_squared_error',
+              optimizer=sgd,
+              metrics=['mse'])
 
 
-joints = extract_humanEva_label(train_data, 'S1', 'Box', 'C1')
+def custom_lstm(ht, ct, data, W, U, b):
+    """
+    :param ht: previous hidden state (h, 1)
+    :param ct: Previous cell state (h, 1)
+    :param data: new input data (d, 1)
+    :param W: parameter for ht (h, 4*h)
+    :param U: parameter for data (d, 4*h)
+    :param b: bias (4*h, )
+    :return: current hidden state and cell state
+    """
+    global ht_, ct_
+    h, _ = ht.shape
+    W_i = W[:, :h]
+    W_f = W[:, h: h * 2]
+    W_c = W[:, h * 2: h * 3]
+    W_o = W[:, h * 3:]
 
-# JOINTS = ("head", "neck", "thorax", "pelvis", "l_shoulder", "l_elbow", "l_wrist", "r_shoulder", "r_elbow", "r_wrist", "l_knee", "l_ankle", "r_knee", "r_ankle")
+    U_i = U[:, :h]
+    U_f = U[:, h: h * 2]
+    U_c = U[:, h * 2: h * 3]
+    U_o = U[:, h * 3:]
+
+    b_i = b[:h]
+    b_f = b[h: h * 2]
+    b_c = b[h * 2: h * 3]
+    b_o = b[h * 3:]
+
+    ft = hard_sigmoid(W_f.T.dot(ht)+U_f.T.dot(data)+b_f.reshape((h, 1)))
+    it = hard_sigmoid(W_i.T.dot(ht) + U_i.T.dot(data) + b_i.reshape((h, 1)))
+    ct_bar = np.tanh(W_c.T.dot(ht) + U_c.T.dot(data) + b_c.reshape((h, 1)))
+    ct_ = ft*ct + it*ct_bar
+    ot = hard_sigmoid(W_o.T.dot(ht) + U_o.T.dot(data) + b_o.reshape((h, 1)))
+    ht_ = ot*np.tanh(ct_)
+    return ht_, ct_
+
+
+def hard_sigmoid(x):
+    output = 0.2 * x + 0.5
+    output[x < -2.5] = 0
+    output[x > 2.5] = 1
+    return output
+
+def custom_dense(ht, Dw, Db):
+    """
+    :param ht: previous hidden state (h, 1)
+    :param Dw: Dense weight (h, d)
+    :param Db: Dense bias (d, )
+    :return: output: (d,)
+    """
+    h, d = Dw.shape
+    return Dw.T.dot(ht).reshape((d,)) + Db
+
+window_size = 2
+d = 4
+hidden_unit = 3
+data = np.array([[1, 2, 3, 4], [3, 4, 5, 6]]).reshape((1, 2, 4))
+x = model.predict(data)
+ht = np.zeros((3, 1))
+ct = np.zeros((3, 1))
+U, W, b, Dw, Db = model.get_weights()
+ht_, ct_ = custom_lstm(ht, ct, data[0,0,:].reshape((4,1)), W, U, b)
+print(custom_dense(ht_, Dw, Db))
+ht_, ct_ = custom_lstm(ht_, ct_, data[0,1,:].reshape((4,1)), W, U, b)
+output = custom_dense(ht_, Dw, Db)
+1

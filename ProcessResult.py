@@ -1,6 +1,11 @@
 import os
+import sys
 import numpy as np
+from keras.models import load_model
 import matplotlib.pyplot as plt
+
+sys.path.insert(0, os.getcwd() + '/Modules/')
+import utils
 
 """ data map:
 0: head x
@@ -21,17 +26,61 @@ GT1:NY531
 GT2:RCH1
 GT3:RCH3
 """
-which_result = '2019414352'
-path = os.getcwd() + '/Result/' + which_result + '/'
-GT1 = np.genfromtxt(path + 'GroundTruth1.csv', delimiter=',')
-# GT2=np.genfromtxt(path+'GroundTruth2.csv',delimiter=',')
-# GT3=np.genfromtxt(path+'GroundTruth3.csv',delimiter=',')
-
-PD1 = np.genfromtxt(path + 'Prediction1.csv', delimiter=',')
 
 
-# PD2=np.genfromtxt(path+'Prediction2.csv',delimiter=',')
-# PD3=np.genfromtxt(path+'Prediction3.csv',delimiter=',')
+def custom_lstm(ht, ct, data, W, U, b):
+    """
+    :param ht: previous hidden state (h, 1)
+    :param ct: Previous cell state (h, 1)
+    :param data: new input data (d, 1)
+    :param W: parameter for ht (h, 4*h)
+    :param U: parameter for data (d, 4*h)
+    :param b: bias (4*h, )
+    :return: current hidden state and cell state
+    """
+    global ht_, ct_
+    h, _ = ht.shape
+    W_i = W[:, :h]
+    W_f = W[:, h: h * 2]
+    W_c = W[:, h * 2: h * 3]
+    W_o = W[:, h * 3:]
+
+    U_i = U[:, :h]
+    U_f = U[:, h: h * 2]
+    U_c = U[:, h * 2: h * 3]
+    U_o = U[:, h * 3:]
+
+    b_i = b[:h]
+    b_f = b[h: h * 2]
+    b_c = b[h * 2: h * 3]
+    b_o = b[h * 3:]
+
+    ft = hard_sigmoid(W_f.T.dot(ht) + U_f.T.dot(data) + b_f.reshape((h, 1)))
+    it = hard_sigmoid(W_i.T.dot(ht) + U_i.T.dot(data) + b_i.reshape((h, 1)))
+    ct_bar = np.tanh(W_c.T.dot(ht) + U_c.T.dot(data) + b_c.reshape((h, 1)))
+    ct_ = ft * ct + it * ct_bar
+    ot = hard_sigmoid(W_o.T.dot(ht) + U_o.T.dot(data) + b_o.reshape((h, 1)))
+    ht_ = ot * np.tanh(ct_)
+    return ht_, ct_
+
+
+def hard_sigmoid(x):
+    output = 0.2 * x + 0.5
+    output[x < -2.5] = 0
+    output[x > 2.5] = 1
+    return output
+
+
+def custom_dense(ht, Dw, Db):
+    """
+    :param ht: previous hidden state (h, 1)
+    :param Dw: Dense weight (h, d)
+    :param Db: Dense bias (d, )
+    :return: output: (d,)
+    """
+    h, d = Dw.shape
+    return Dw.T.dot(ht).reshape((d,)) + Db
+
 
 def percentage_in_range(GT, PD, r):
     rate = []
@@ -53,66 +102,47 @@ def percentage_in_range(GT, PD, r):
     return rate, rate_navie  # list with len 7
 
 
-r = np.arange(0, 30, 1)
-head = []
-l_hand = []
-r_hand = []
-l_elbow = []
-r_elbow = []
-l_shoulder = []
-r_shoulder = []
-for i in range(len(r)):
-    print(i)
-    rate, rate_navie = percentage_in_range(GT1, PD1, r[i])
-    head.append([rate[0], rate_navie[0]])
-    l_hand.append([rate[1], rate_navie[1]])
-    r_hand.append([rate[2], rate_navie[2]])
-    l_elbow.append([rate[3], rate_navie[3]])
-    r_elbow.append([rate[4], rate_navie[4]])
-    l_shoulder.append([rate[5], rate_navie[5]])
-    r_shoulder.append([rate[6], rate_navie[6]])
-head = np.asarray(head)
-l_hand = np.asarray(l_hand)
-r_hand = np.asarray(r_hand)
-l_elbow = np.asarray(l_elbow)
-r_elbow = np.asarray(r_elbow)
-l_shoulder = np.asarray(l_shoulder)
-r_shoulder = np.asarray(r_shoulder)
-plt.subplot(421)
-plt.plot(r, head[:, 0], r, head[:, 1])
-plt.gca().legend(('LSTM', 'Naive'))
-plt.title('NY531')
-plt.ylabel('head accuracy')
-plt.xlabel('distance')
-plt.subplot(422)
-plt.plot(r, l_hand[:, 0], r, l_hand[:, 1])
-plt.gca().legend(('LSTM', 'Naive'))
-plt.ylabel('l hand accuracy')
-plt.xlabel('distance')
-plt.subplot(423)
-plt.plot(r, r_hand[:, 0], r, r_hand[:, 1])
-plt.gca().legend(('LSTM', 'Naive'))
-plt.ylabel('r hand accuracy')
-plt.xlabel('distance')
-plt.subplot(424)
-plt.plot(r, l_elbow[:, 0], r, l_elbow[:, 1])
-plt.gca().legend(('LSTM', 'Naive'))
-plt.ylabel('l elbow accuracy')
-plt.xlabel('distance')
-plt.subplot(425)
-plt.plot(r, r_elbow[:, 0], r, r_elbow[:, 1])
-plt.gca().legend(('LSTM', 'Naive'))
-plt.ylabel('r elbow accuracy')
-plt.xlabel('distance')
-plt.subplot(426)
-plt.plot(r, l_shoulder[:, 0], r, l_shoulder[:, 1])
-plt.gca().legend(('LSTM', 'Naive'))
-plt.ylabel('l shoulder accuracy')
-plt.xlabel('distance')
-plt.subplot(427)
-plt.plot(r, r_shoulder[:, 0], r, r_shoulder[:, 1])
-plt.gca().legend(('LSTM', 'Naive'))
-plt.ylabel('r shoulder accuracy')
-plt.xlabel('distance')
-plt.show()
+def plot_result(data_path, model_path):
+    data = np.genfromtxt(data_path, delimiter=',')[:14, :]
+    model = load_model(model_path)
+    U, W, b, Dw, Db = model.get_weights()
+    h, _ = W.shape
+    n = data.shape[1]
+    ht = np.zeros((h, 1))
+    ct = np.zeros((h, 1))
+    model_output = np.zeros((n, 14))
+    for i in range(1, n):
+        ht, ct = custom_lstm(ht, ct, (2 * data[:, i - 1] / 255 - 1).reshape((14, 1)), W, U, b)
+        model_output[i, :] = (custom_dense(ht, Dw, Db).T+1)*255/2
+    ground_truth = data.T
+    name = ['head', 'l_hand', 'r_hand', 'l_elbow', 'r_elbow', 'l_shoulder', 'r_shoulder']
+    r = np.arange(0, 30, 1)
+    result = []
+    for rr in r:
+        result.append(percentage_in_range(ground_truth, model_output, rr))
+    result = np.asarray(result)
+    for i in range(7):
+        plt.subplot(4, 2, i + 1)
+        plt.plot(r, result[:, 0, i], r, result[:, 1, i])
+        plt.gca().legend(('LSTM', 'Naive'))
+        plt.ylabel(name[i])
+        plt.xlabel('distance')
+    plt.show()
 
+
+test_data_path = 'Data/NY531/test/part1.csv'
+model_path = 'Result/2019414352/model.h5'
+plot_result(test_data_path, model_path)
+# window_size = 2
+# d = 4
+# hidden_unit = 3
+# data = np.array([[1, 2, 3, 4], [3, 4, 5, 6]]).reshape((1, 2, 4))
+# x = model.predict(data)
+# ht = np.zeros((3, 1))
+# ct = np.zeros((3, 1))
+# U, W, b, Dw, Db = model.get_weights()
+# ht_, ct_ = custom_lstm(ht, ct, data[0,0,:].reshape((4,1)), W, U, b)
+# print(custom_dense(ht_, Dw, Db))
+# ht_, ct_ = custom_lstm(ht_, ct_, data[0,1,:].reshape((4,1)), W, U, b)
+# output = custom_dense(ht_, Dw, Db)
+# 1

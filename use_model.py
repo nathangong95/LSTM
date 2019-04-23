@@ -7,16 +7,16 @@ import models
 data_path = os.getcwd() + '/Data/NY531/train/'
 
 # for one step prediction
-window_size = 30
+window_size = 100
 dimension = 14
 step_size = 1
-batch_size = 16
-epoch = 1000
+batch_size = 12
+epoch = 10000
 Num_data = 53860
 a = 6  # parameter to set the No of hidden units
 hidden_unit = int(Num_data / (a * (window_size * dimension + dimension)))
 print('number of hidden unit is ' + str(hidden_unit))
-
+hidden_unit = 300
 train_data, train_label = utils.load_data_one_step_prediction(data_path, step_size=step_size, window_size=window_size,
                                                               moving_only=False)
 train_data, train_label = utils.normalize(train_data, train_label)
