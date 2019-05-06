@@ -7,6 +7,59 @@ import numpy as np
 import particle
 from matplotlib import pyplot as plt
 
+
+def custom_lstm(ht, ct, data, W, U, b):
+    """
+    :param ht: previous hidden state (h, 1)
+    :param ct: Previous cell state (h, 1)
+    :param data: new input data (d, 1)
+    :param W: parameter for ht (h, 4*h)
+    :param U: parameter for data (d, 4*h)
+    :param b: bias (4*h, )
+    :return: current hidden state and cell state
+    """
+    global ht_, ct_
+    h, _ = ht.shape
+    W_i = W[:, :h]
+    W_f = W[:, h: h * 2]
+    W_c = W[:, h * 2: h * 3]
+    W_o = W[:, h * 3:]
+
+    U_i = U[:, :h]
+    U_f = U[:, h: h * 2]
+    U_c = U[:, h * 2: h * 3]
+    U_o = U[:, h * 3:]
+
+    b_i = b[:h]
+    b_f = b[h: h * 2]
+    b_c = b[h * 2: h * 3]
+    b_o = b[h * 3:]
+
+    ft = hard_sigmoid(W_f.T.dot(ht)+U_f.T.dot(data)+b_f.reshape((h, 1)))
+    it = hard_sigmoid(W_i.T.dot(ht) + U_i.T.dot(data) + b_i.reshape((h, 1)))
+    ct_bar = np.tanh(W_c.T.dot(ht) + U_c.T.dot(data) + b_c.reshape((h, 1)))
+    ct_ = ft*ct + it*ct_bar
+    ot = hard_sigmoid(W_o.T.dot(ht) + U_o.T.dot(data) + b_o.reshape((h, 1)))
+    ht_ = ot*np.tanh(ct_)
+    return ht_, ct_
+
+
+def hard_sigmoid(x):
+    output = 0.2 * x + 0.5
+    output[x < -2.5] = 0
+    output[x > 2.5] = 1
+    return output
+
+def custom_dense(ht, Dw, Db):
+    """
+    :param ht: previous hidden state (h, 1)
+    :param Dw: Dense weight (h, d)
+    :param Db: Dense bias (d, )
+    :return: output: (d,)
+    """
+    h, d = Dw.shape
+    return Dw.T.dot(ht).reshape((d,)) + Db
+
 def normalize_heatmap(heatmap):
     """
         heatmap:256*256
@@ -66,6 +119,8 @@ def particle_filter_with_LSTM(joints, heatmap_path, model, Q, GT, num_particles=
     global particles, weights
     window_size = model.layers[0].output_shape[1]
     joints_particle = np.zeros((3000, 7, 2))
+    U, W, b, Dw, Db = model.get_weights()
+    h, _ = W.shape
     for i in range(joints.shape[0]):
         print(i)
         heatmaps = np.load(heatmap_path + str(i + 1) + '.npy')  # 7*256*256
@@ -82,27 +137,31 @@ def particle_filter_with_LSTM(joints, heatmap_path, model, Q, GT, num_particles=
                     position[2 * j] = pos[0]
                     position[2 * j + 1] = pos[1]
                     weight[j] = heatmaps[j, pos[0], pos[1]]
-                particles.append(particle.Particle(parent=None, pos=position))
+                particles.append(particle.Particle(parent=None, pos=position, ht=np.zeros((h, 1)), ct=np.zeros((h, 1))))
                 weights[k] = sum(weight)/7.0  # might need change here
             weights = weights/sum(weights)
             joints_particle[0, :, :] = joints[0, :, :]
         else:
             new_particles = []
             for k in range(num_particles):
+                # particle_k = importance_sampling(particles, weights)
+                # model_input = np.zeros((1, window_size, 14))
+                # model_input[0, window_size - 1, :] = particle_k.pos
+                # for a in range(window_size - 1):
+                #     parent = particle_k.parent
+                #     if parent is None:
+                #         break
+                #     model_input[0, window_size - a - 2, :] = parent.pos
+                # model_input, _ = utils.normalize([model_input], [model_input])
+                # predict = model.predict(model_input[0])
+                # predict = utils.recover_from_normalize(predict[0, window_size - 1, :])
+
                 particle_k = importance_sampling(particles, weights)
-                model_input = np.zeros((1, window_size, 14))
-                model_input[0, window_size - 1, :] = particle_k.pos
-                for a in range(window_size - 1):
-                    parent = particle_k.parent
-                    if parent is None:
-                        break
-                    model_input[0, window_size - a - 2, :] = parent.pos
-                model_input, _ = utils.normalize([model_input], [model_input])
-                predict = model.predict(model_input[0])
-                predict = utils.recover_from_normalize(predict[0, window_size - 1, :])
-                updated = np.random.multivariate_normal(np.reshape(predict, (14,)), Q, 1)
+                ht, ct = custom_lstm(particle_k.ht, particle_k.ct, (2 * particle_k.pos / 255 - 1).reshape((14, 1)), W, U, b)
+                pos = (custom_dense(ht, Dw, Db).T + 1) * 255 / 2
+                updated = np.random.multivariate_normal(np.reshape(pos, (14,)), Q, 1)
                 updated = np.reshape(updated, (14,))
-                new_particles.append(particle.Particle(parent=particle_k, pos=updated))
+                new_particles.append(particle.Particle(parent=particle_k, pos=updated, ht=ht, ct=ct))
             particles = new_particles
             for k in range(num_particles):
                 pos = particles[k].pos

@@ -42,7 +42,7 @@ class onestepModel:
         output = Dense(d, activation='linear')(lstm)
         model = Model(inputs=data, outputs=output)
         # plot_model(model, to_file='onse_step_prediction.png')
-        sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+        sgd = optimizers.SGD(lr=0.1, momentum=0.2, nesterov=True)
         model.compile(loss='mean_squared_error',
                       optimizer=sgd,
                       metrics=['mse'])

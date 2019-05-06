@@ -251,7 +251,7 @@ def train_model(model, train_data, train_label, batch_s, epo, cross_val=False):
     train_x = np.vstack(train_data[1:])
     train_y = np.vstack(train_label[1:])
     filepath = "weights-improvement-{epoch:02d}.h5"
-    callbacks = [EarlyStopping(monitor='val_loss', patience=0),
+    callbacks = [EarlyStopping(monitor='val_loss', patience=20),
                  ModelCheckpoint(filepath=filepath, monitor='val_loss', save_best_only=False)]
     call_back.append(model.fit(train_x, train_y, batch_size=batch_s, epochs=epo, callbacks=callbacks,
                                validation_data=(train_data[0], train_label[0])))

@@ -102,8 +102,7 @@ def percentage_in_range(GT, PD, r):
     return rate, rate_navie  # list with len 7
 
 
-def plot_result(data_path, model_path):
-    data = np.genfromtxt(data_path, delimiter=',')[:14, :]
+def plot_result(data, model_path):
     model = load_model(model_path)
     U, W, b, Dw, Db = model.get_weights()
     h, _ = W.shape
@@ -130,9 +129,10 @@ def plot_result(data_path, model_path):
     plt.show()
 
 
-test_data_path = 'Data/NY531/test/part1.csv'
-model_path = 'Result/2019414352/model.h5'
-plot_result(test_data_path, model_path)
+test_data_path = 'Result/20191101124 (tested on manually annotated)/GroundTruth1.csv'
+model_path = 'Result/2019551452best/model.h5'
+data = np.genfromtxt(test_data_path, delimiter=',').T# [:14, :]
+plot_result(data, model_path)
 # window_size = 2
 # d = 4
 # hidden_unit = 3
